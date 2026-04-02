@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>deepseek chat</title>
+<title>DeepSeek Chat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
@@ -29,6 +29,10 @@
   --red:       #e05c5c;
   --yellow:    #e8c060;
   --font:      'JetBrains Mono', monospace;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+  --shadow-glow: 0 0 20px rgba(212, 146, 10, 0.15);
 }
 
 html, body {
@@ -42,18 +46,26 @@ html, body {
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--dim2); }
+::-webkit-scrollbar-thumb { 
+  background: var(--border2); 
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: var(--dim2); 
+  box-shadow: var(--shadow-sm);
+}
 
 /* ── Layout ────────────────────────────────────────────────────────────────── */
 #app {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 860px;
+  max-width: 900px;
   margin: 0 auto;
+  box-shadow: var(--shadow-lg);
 }
 
 /* ── Header ────────────────────────────────────────────────────────────────── */
@@ -61,459 +73,733 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 14px 24px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
   flex-shrink: 0;
   gap: 12px;
+  box-shadow: var(--shadow-md);
+  z-index: 10;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .status-dot {
-  width: 6px; height: 6px;
+  width: 8px; 
+  height: 8px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 6px var(--green);
+  box-shadow: 0 0 8px var(--green), var(--shadow-glow);
   flex-shrink: 0;
-  animation: pulse-dot 3s ease-in-out infinite;
+  animation: pulse-dot 2s ease-in-out infinite;
 }
-.status-dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
-.status-dot.loading { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse-dot 0.8s ease-in-out infinite; }
+.status-dot.offline { 
+  background: var(--red); 
+  box-shadow: 0 0 8px var(--red); 
+  animation: none; 
+}
+.status-dot.loading { 
+  background: var(--accent); 
+  box-shadow: 0 0 8px var(--accent); 
+  animation: pulse-dot 0.8s ease-in-out infinite; 
+}
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.6; 
+    transform: scale(1.1);
+  }
 }
 
 .model-tag {
   color: var(--accent);
   font-weight: 500;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.02em;
+  text-shadow: 0 0 10px rgba(212, 146, 10, 0.3);
 }
-.via-tag { color: var(--dim2); font-size: 11px; }
+.via-tag { 
+  color: var(--dim2); 
+  font-size: 11px; 
+}
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .session-pill {
   color: var(--dim2);
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.05em;
+  padding: 4px 8px;
+  background: var(--bg3);
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
 .header-btn {
-  background: none;
+  background: var(--bg3);
   border: 1px solid var(--border2);
   color: var(--dim3);
   font-family: var(--font);
   font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 3px;
+  padding: 5px 12px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
-.header-btn:hover { color: var(--text); border-color: var(--dim2); }
+.header-btn:hover { 
+  color: var(--text); 
+  border-color: var(--accent);
+  background: var(--bg2);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
 
 /* ── Chat area ─────────────────────────────────────────────────────────────── */
 #chat-area {
   flex: 1;
   overflow-y: auto;
-  padding: 0 20px 20px;
+  padding: 24px;
   scroll-behavior: smooth;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
 }
-
-/* ── Worker config banner ──────────────────────────────────────────────────── */
-#config-banner {
-  margin: 20px 0;
-  padding: 16px 18px;
-  border: 1px solid var(--accent2);
-  border-radius: 4px;
-  background: #1a1200;
-}
-#config-banner p { color: var(--yellow); font-size: 12px; margin-bottom: 8px; }
-#config-banner input {
-  width: 100%;
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 3px;
-  outline: none;
-  margin-top: 4px;
-}
-#config-banner input:focus { border-color: var(--accent2); }
-#config-banner button {
-  margin-top: 8px;
-  background: var(--accent2);
-  border: none;
-  color: #000;
-  font-family: var(--font);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 5px 14px;
-  border-radius: 3px;
-  cursor: pointer;
-}
-#config-banner button:hover { background: var(--accent); }
 
 /* ── Messages ──────────────────────────────────────────────────────────────── */
 .msg-group {
-  margin-top: 22px;
-  animation: fadein 0.2s ease;
+  margin-top: 24px;
+  animation: fadein 0.3s ease;
+  padding: 16px;
+  background: var(--bg3);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
 }
-@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.msg-group:hover {
+  box-shadow: var(--shadow-md);
+}
+@keyframes fadein { 
+  from { 
+    opacity: 0; 
+    transform: translateY(8px); 
+  } 
+  to { 
+    opacity: 1; 
+    transform: none; 
+  } 
+}
 
 .msg-header {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border2);
 }
-.msg-ts   { color: var(--dim2); font-size: 10px; }
-.msg-role { font-size: 12px; font-weight: 500; }
-.msg-role.you { color: var(--text); }
-.msg-role.ai  { color: var(--cyan); }
+.msg-ts   { 
+  color: var(--dim2); 
+  font-size: 11px; 
+}
+.msg-role { 
+  font-size: 13px; 
+  font-weight: 500; 
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.msg-role.you { 
+  color: var(--text); 
+}
+.msg-role.ai  { 
+  color: var(--cyan); 
+  text-shadow: 0 0 8px rgba(78, 201, 176, 0.3);
+}
 
-.msg-body { padding-left: 0; }
+.msg-body { 
+  padding-left: 0; 
+}
 
 /* Prose content inside AI messages */
-.prose { color: var(--text); line-height: 1.7; }
-.prose p  { margin-bottom: 0.75em; }
-.prose p:last-child { margin-bottom: 0; }
-.prose h1, .prose h2, .prose h3 { color: var(--text); font-weight: 500; margin: 1em 0 0.4em; }
-.prose h1 { font-size: 1.15em; }
-.prose h2 { font-size: 1.05em; }
-.prose h3 { font-size: 1em; color: var(--dim3); }
-.prose strong { color: var(--text); font-weight: 600; }
-.prose em     { color: var(--dim3); font-style: italic; }
-.prose ul, .prose ol { padding-left: 1.4em; margin-bottom: 0.75em; }
-.prose li { margin-bottom: 0.2em; }
-.prose a  { color: var(--accent); text-decoration: none; }
-.prose a:hover { text-decoration: underline; }
+.prose { 
+  color: var(--text); 
+  line-height: 1.7; 
+}
+.prose p  { 
+  margin-bottom: 1em; 
+}
+.prose p:last-child { 
+  margin-bottom: 0; 
+}
+.prose h1, .prose h2, .prose h3 { 
+  color: var(--text); 
+  font-weight: 500; 
+  margin: 1.2em 0 0.6em; 
+}
+.prose h1 { 
+  font-size: 1.2em; 
+  border-bottom: 1px solid var(--border2);
+  padding-bottom: 4px;
+}
+.prose h2 { 
+  font-size: 1.1em; 
+}
+.prose h3 { 
+  font-size: 1em; 
+  color: var(--dim3); 
+}
+.prose strong { 
+  color: var(--text); 
+  font-weight: 600; 
+}
+.prose em     { 
+  color: var(--dim3); 
+  font-style: italic; 
+}
+.prose ul, .prose ol { 
+  padding-left: 1.6em; 
+  margin-bottom: 1em; 
+}
+.prose li { 
+  margin-bottom: 0.3em; 
+}
+.prose a  { 
+  color: var(--accent); 
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.prose a:hover { 
+  color: var(--yellow); 
+  text-decoration: underline; 
+}
 .prose code { /* inline code */
-  background: var(--bg3);
+  background: var(--bg4);
   border: 1px solid var(--border2);
   color: var(--yellow);
-  padding: 1px 5px;
-  border-radius: 2px;
+  padding: 2px 6px;
+  border-radius: 3px;
   font-size: 0.9em;
+  box-shadow: var(--shadow-sm);
 }
-.prose hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.prose hr { 
+  border: none; 
+  border-top: 1px solid var(--border); 
+  margin: 1.5em 0; 
+}
 .prose blockquote {
-  border-left: 2px solid var(--dim);
-  padding-left: 12px;
+  border-left: 3px solid var(--dim);
+  padding-left: 16px;
   color: var(--dim3);
-  margin: 0.6em 0;
+  margin: 1em 0;
+  background: var(--bg2);
+  padding: 12px;
+  border-radius: 0 4px 4px 0;
 }
-.prose table { border-collapse: collapse; margin: 0.6em 0; font-size: 0.9em; }
-.prose th, .prose td { border: 1px solid var(--border2); padding: 5px 10px; }
-.prose th { color: var(--dim3); font-weight: 500; }
-
-/* User message text */
-.user-text { color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.prose table { 
+  border-collapse: collapse; 
+  margin: 1em 0; 
+  font-size: 0.9em;
+  box-shadow: var(--shadow-sm);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.prose th, .prose td { 
+  border: 1px solid var(--border2); 
+  padding: 8px 12px; 
+}
+.prose th { 
+  color: var(--dim3); 
+  font-weight: 500;
+  background: var(--bg3);
+}
 
 /* ── Code panels ───────────────────────────────────────────────────────────── */
 .code-panel {
   position: relative;
-  margin: 10px 0;
+  margin: 16px 0;
   border: 1px solid var(--border2);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg2);
   overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 0.2s ease;
+}
+.code-panel:hover {
+  box-shadow: var(--shadow-lg);
 }
 .code-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 12px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   background: var(--bg3);
 }
-.code-lang { color: var(--dim3); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.code-lang { 
+  color: var(--dim3); 
+  font-size: 11px; 
+  letter-spacing: 0.08em; 
+  text-transform: uppercase; 
+}
 .code-copy {
-  background: none;
-  border: none;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
   color: var(--dim2);
   font-family: var(--font);
-  font-size: 10px;
+  font-size: 11px;
   cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 2px;
-  transition: color 0.15s;
+  padding: 4px 10px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
 }
-.code-copy:hover { color: var(--text); }
+.code-copy:hover { 
+  color: var(--text); 
+  border-color: var(--accent);
+  background: var(--bg);
+  transform: translateY(-1px);
+}
+.code-copy:active {
+  transform: translateY(0);
+}
 .code-body {
-  padding: 12px 14px;
+  padding: 16px;
   overflow-x: auto;
   color: var(--dim3);
   font-size: 12px;
   line-height: 1.65;
   white-space: pre;
   tab-size: 2;
+  background: var(--bg);
 }
 
 /* ── Streaming cursor ──────────────────────────────────────────────────────── */
 .stream-cursor {
   display: inline-block;
-  width: 7px; height: 14px;
+  width: 2px;
+  height: 1.2em;
   background: var(--accent);
-  border-radius: 1px;
-  margin-left: 2px;
-  vertical-align: text-bottom;
+  margin-left: 4px;
+  vertical-align: middle;
   animation: blink 1s step-end infinite;
+  box-shadow: 0 0 8px var(--accent);
 }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes blink { 
+  0%, 100% { 
+    opacity: 1; 
+  } 
+  50% { 
+    opacity: 0; 
+  } 
+}
 
-/* ── Stitch / system notices ───────────────────────────────────────────────── */
+/* ── Notices ───────────────────────────────────────────────────────────────── */
 .notice {
-  margin: 14px 0 4px;
-  padding: 7px 12px;
-  border-radius: 3px;
-  font-size: 11px;
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
 }
-.notice.stitch-progress { border: 1px solid var(--border2); color: var(--dim3); background: var(--bg2); }
-.notice.stitch-done     { border: 1px solid #1d3a2a; color: var(--green); background: #0b1c12; }
-.notice.error           { border: 1px solid #3a1d1d; color: var(--red);   background: #1c0b0b; }
-.notice.info            { border: 1px solid var(--border2); color: var(--dim3); background: var(--bg2); }
+.notice.stitch-progress { 
+  border: 1px solid var(--border2); 
+  color: var(--dim3); 
+  background: var(--bg2); 
+}
+.notice.stitch-done     { 
+  border: 1px solid rgba(111, 207, 151, 0.3); 
+  color: var(--green); 
+  background: rgba(11, 28, 18, 0.5); 
+  box-shadow: 0 0 20px rgba(111, 207, 151, 0.1);
+}
+.notice.error           { 
+  border: 1px solid rgba(224, 92, 92, 0.3); 
+  color: var(--red);   
+  background: rgba(28, 11, 11, 0.5);
+  box-shadow: 0 0 20px rgba(224, 92, 92, 0.1);
+}
+.notice.info            { 
+  border: 1px solid var(--border2); 
+  color: var(--dim3); 
+  background: var(--bg2); 
+}
 
 /* ── Download bar ──────────────────────────────────────────────────────────── */
 .download-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  padding: 8px 12px;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 16px;
   border: 1px solid var(--border2);
-  border-radius: 3px;
+  border-radius: 6px;
   background: var(--bg2);
-  font-size: 11px;
+  font-size: 12px;
+  box-shadow: var(--shadow-sm);
 }
-.download-bar .file-meta { color: var(--dim3); flex: 1; }
-.download-bar .file-meta span { color: var(--text); }
+.download-bar .file-meta { 
+  color: var(--dim3); 
+  flex: 1; 
+}
+.download-bar .file-meta span { 
+  color: var(--text); 
+  font-weight: 500;
+}
 .dl-btn {
-  background: none;
+  background: var(--bg3);
   border: 1px solid var(--border2);
   color: var(--cyan);
   font-family: var(--font);
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 2px;
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: all 0.2s ease;
 }
-.dl-btn:hover { background: rgba(78,201,176,0.08); border-color: var(--cyan); }
-.dl-btn.saved { color: var(--green); border-color: #1d3a2a; pointer-events: none; }
+.dl-btn:hover { 
+  background: rgba(78,201,176,0.1); 
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.dl-btn.saved { 
+  color: var(--green); 
+  border-color: rgba(111, 207, 151, 0.3); 
+  pointer-events: none; 
+  background: rgba(11, 28, 18, 0.3);
+}
 
-/* ── Help overlay ──────────────────────────────────────────────────────────── */
-#help-overlay {
+/* ── Overlays ──────────────────────────────────────────────────────────────── */
+.overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(2px);
-  z-index: 100;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
   align-items: center;
   justify-content: center;
+  animation: overlay-in 0.2s ease;
 }
-#help-overlay.visible { display: flex; }
-#help-box {
+.overlay.visible { 
+  display: flex; 
+}
+@keyframes overlay-in {
+  from { 
+    opacity: 0; 
+    backdrop-filter: blur(0);
+  }
+  to { 
+    opacity: 1; 
+    backdrop-filter: blur(8px);
+  }
+}
+
+.overlay-box {
   background: var(--bg2);
   border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 24px 28px;
+  border-radius: 12px;
+  padding: 28px 32px;
   min-width: 400px;
   max-width: 520px;
-  animation: fadein 0.15s ease;
+  animation: box-in 0.3s ease;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
 }
-#help-box h2 { font-size: 12px; color: var(--dim3); margin-bottom: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
-.cmd-row { display: flex; gap: 16px; margin-bottom: 10px; align-items: baseline; }
-.cmd-name { color: var(--cyan); font-size: 12px; min-width: 130px; }
-.cmd-desc { color: var(--dim3); font-size: 11px; }
-#help-box hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
-#help-close {
-  background: none;
+@keyframes box-in {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: none; 
+  }
+}
+
+.overlay-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+}
+
+.overlay-box h2 { 
+  font-size: 13px; 
+  color: var(--dim3); 
+  margin-bottom: 20px; 
+  letter-spacing: 0.1em; 
+  text-transform: uppercase; 
+}
+
+.cmd-row { 
+  display: flex; 
+  gap: 20px; 
+  margin-bottom: 12px; 
+  align-items: baseline; 
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cmd-row:last-child { 
+  border-bottom: none; 
+}
+.cmd-name { 
+  color: var(--cyan); 
+  font-size: 12px; 
+  min-width: 140px; 
+  font-weight: 500;
+}
+.cmd-desc { 
+  color: var(--dim3); 
+  font-size: 12px; 
+  flex: 1;
+}
+
+.overlay-box hr { 
+  border: none; 
+  border-top: 1px solid var(--border); 
+  margin: 20px 0; 
+}
+.overlay-btn {
+  background: var(--bg3);
   border: 1px solid var(--border2);
   color: var(--dim3);
   font-family: var(--font);
-  font-size: 11px;
-  padding: 5px 14px;
-  border-radius: 3px;
+  font-size: 12px;
+  padding: 8px 18px;
+  border-radius: 4px;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 20px;
   float: right;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
-#help-close:hover { color: var(--text); }
-
-/* ── History overlay ───────────────────────────────────────────────────────── */
-#history-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(2px);
-  z-index: 100;
-  align-items: center;
-  justify-content: center;
-}
-#history-overlay.visible { display: flex; }
-#history-box {
+.overlay-btn:hover { 
+  color: var(--text); 
+  border-color: var(--accent);
   background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 24px 28px;
-  min-width: 420px;
-  animation: fadein 0.15s ease;
+  transform: translateY(-1px);
 }
-#history-box h2 { font-size: 12px; color: var(--dim3); margin-bottom: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
-.hist-row { display: flex; gap: 16px; margin-bottom: 9px; font-size: 12px; }
-.hist-key { color: var(--dim2); min-width: 110px; }
-.hist-val { color: var(--text); }
-#history-close {
-  background: none;
-  border: 1px solid var(--border2);
-  color: var(--dim3);
-  font-family: var(--font);
-  font-size: 11px;
-  padding: 5px 14px;
-  border-radius: 3px;
-  cursor: pointer;
-  margin-top: 14px;
-  float: right;
-}
-#history-close:hover { color: var(--text); }
 
-/* ── Command palette ───────────────────────────────────────────────────────── */
+/* ── History & Saves content ──────────────────────────────────────────────── */
+.hist-row { 
+  display: flex; 
+  gap: 20px; 
+  margin-bottom: 12px; 
+  font-size: 12px; 
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.hist-row:last-child { 
+  border-bottom: none; 
+}
+.hist-key { 
+  color: var(--dim2); 
+  min-width: 120px; 
+}
+.hist-val { 
+  color: var(--text); 
+  flex: 1;
+}
+
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.save-row:last-child { 
+  border-bottom: none; 
+}
+.save-name { 
+  color: var(--text); 
+  flex: 1; 
+  font-weight: 500;
+}
+.save-meta { 
+  color: var(--dim2); 
+}
+.save-dl { 
+  color: var(--cyan); 
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+.save-dl:hover { 
+  text-decoration: underline; 
+  border-color: var(--border2);
+  background: var(--bg3);
+}
+
+/* ── Command palette ──────────────────────────────────────────────────────── */
 #cmd-palette {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 20px; right: 20px;
+  bottom: calc(100% + 8px);
+  left: 24px; 
+  right: 24px;
   background: var(--bg2);
   border: 1px solid var(--border2);
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
   z-index: 50;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-lg);
+  border-top: 2px solid var(--accent);
 }
-#cmd-palette.hidden { display: none; }
+#cmd-palette.hidden { 
+  display: none; 
+}
 .pal-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 8px 14px;
+  gap: 16px;
+  padding: 10px 16px;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: all 0.15s ease;
+  border-bottom: 1px solid var(--border);
 }
-.pal-item:hover, .pal-item.selected { background: var(--bg3); }
-.pal-cmd  { color: var(--cyan); font-size: 12px; min-width: 120px; }
-.pal-desc { color: var(--dim2); font-size: 11px; }
+.pal-item:last-child { 
+  border-bottom: none; 
+}
+.pal-item:hover, .pal-item.selected { 
+  background: var(--bg3); 
+}
+.pal-item.selected {
+  border-left: 3px solid var(--accent);
+}
+.pal-cmd  { 
+  color: var(--cyan); 
+  font-size: 13px; 
+  min-width: 140px; 
+  font-weight: 500;
+}
+.pal-desc { 
+  color: var(--dim2); 
+  font-size: 12px; 
+  flex: 1;
+}
 
 /* ── Input area ────────────────────────────────────────────────────────────── */
 #input-area {
   position: relative;
   border-top: 1px solid var(--border);
-  background: var(--bg);
-  padding: 12px 20px 14px;
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  padding: 16px 24px 20px;
   flex-shrink: 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
 }
 
 .input-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
-.prompt-char { color: var(--accent); font-size: 14px; padding-top: 1px; flex-shrink: 0; user-select: none; }
+.prompt-char { 
+  color: var(--accent); 
+  font-size: 16px; 
+  padding-top: 2px; 
+  flex-shrink: 0; 
+  user-select: none; 
+  text-shadow: 0 0 10px rgba(212, 146, 10, 0.3);
+}
 
 #input {
   flex: 1;
-  background: none;
-  border: none;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
   outline: none;
   color: var(--text);
   font-family: var(--font);
   font-size: 13px;
   line-height: 1.6;
   resize: none;
-  min-height: 21px;
-  max-height: 160px;
+  min-height: 24px;
+  max-height: 180px;
   overflow-y: auto;
   caret-color: var(--accent);
+  padding: 12px 16px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
-#input::placeholder { color: var(--dim); }
+#input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(212, 146, 10, 0.2), var(--shadow-md);
+}
+#input::placeholder { 
+  color: var(--dim); 
+}
 
 .input-hint {
-  margin-top: 5px;
-  padding-left: 22px;
-  font-size: 10px;
+  margin-top: 10px;
+  padding-left: 28px;
+  font-size: 11px;
   color: var(--dim);
-  min-height: 14px;
+  min-height: 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
 }
 
-/* ── Saves panel ───────────────────────────────────────────────────────────── */
-#saves-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(2px);
-  z-index: 100;
-  align-items: center;
-  justify-content: center;
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #app {
+    max-width: 100%;
+  }
+  
+  #header {
+    padding: 12px 16px;
+  }
+  
+  #chat-area {
+    padding: 16px;
+  }
+  
+  .msg-group {
+    padding: 12px;
+  }
+  
+  .overlay-box {
+    min-width: 90%;
+    margin: 20px;
+    padding: 20px;
+  }
+  
+  .cmd-row, .hist-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .cmd-name, .hist-key {
+    min-width: auto;
+  }
+  
+  .input-hint {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
 }
-#saves-overlay.visible { display: flex; }
-#saves-box {
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 24px 28px;
-  min-width: 460px;
-  max-height: 70vh;
-  overflow-y: auto;
-  animation: fadein 0.15s ease;
-}
-#saves-box h2 { font-size: 12px; color: var(--dim3); margin-bottom: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
-.save-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 7px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px;
-}
-.save-row:last-child { border-bottom: none; }
-.save-name { color: var(--text); flex: 1; }
-.save-meta { color: var(--dim2); }
-.save-dl { color: var(--cyan); cursor: pointer; }
-.save-dl:hover { text-decoration: underline; }
-#saves-close {
-  background: none;
-  border: 1px solid var(--border2);
-  color: var(--dim3);
-  font-family: var(--font);
-  font-size: 11px;
-  padding: 5px 14px;
-  border-radius: 3px;
-  cursor: pointer;
-  margin-top: 14px;
-  float: right;
-}
-#saves-close:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -540,7 +826,7 @@ html, body {
     <div id="cmd-palette" class="hidden"></div>
     <div class="input-row">
       <span class="prompt-char">›</span>
-      <textarea id="input" rows="1" placeholder="message or /command" spellcheck="false"></textarea>
+      <textarea id="input" rows="1" placeholder="Message or /command..." spellcheck="false"></textarea>
     </div>
     <div class="input-hint" id="input-hint">
       <span>Enter to send</span><span>Shift+Enter new line</span><span>/ for commands</span>
@@ -550,38 +836,38 @@ html, body {
 </div>
 
 <!-- ── Help overlay ──────────────────────────────────────────────────────────── -->
-<div id="help-overlay">
-  <div id="help-box">
-    <h2>commands</h2>
-    <div class="cmd-row"><span class="cmd-name">/cls</span><span class="cmd-desc">clear the screen</span></div>
-    <div class="cmd-row"><span class="cmd-name">/clear</span><span class="cmd-desc">wipe conversation history and stitch buffer</span></div>
-    <div class="cmd-row"><span class="cmd-name">/backup_chat</span><span class="cmd-desc">download session as Markdown</span></div>
-    <div class="cmd-row"><span class="cmd-name">/history</span><span class="cmd-desc">session summary</span></div>
-    <div class="cmd-row"><span class="cmd-name">/saves</span><span class="cmd-desc">files downloaded this session</span></div>
-    <div class="cmd-row"><span class="cmd-name">/help</span><span class="cmd-desc">show this panel</span></div>
+<div id="help-overlay" class="overlay">
+  <div class="overlay-box">
+    <h2>Commands</h2>
+    <div class="cmd-row"><span class="cmd-name">/cls</span><span class="cmd-desc">Clear the screen</span></div>
+    <div class="cmd-row"><span class="cmd-name">/clear</span><span class="cmd-desc">Wipe conversation history and stitch buffer</span></div>
+    <div class="cmd-row"><span class="cmd-name">/backup_chat</span><span class="cmd-desc">Download session as Markdown</span></div>
+    <div class="cmd-row"><span class="cmd-name">/history</span><span class="cmd-desc">Session summary</span></div>
+    <div class="cmd-row"><span class="cmd-name">/saves</span><span class="cmd-desc">Files downloaded this session</span></div>
+    <div class="cmd-row"><span class="cmd-name">/help</span><span class="cmd-desc">Show this panel</span></div>
     <hr>
-    <div class="cmd-row"><span class="cmd-name">Enter</span><span class="cmd-desc">send message</span></div>
-    <div class="cmd-row"><span class="cmd-name">Shift+Enter</span><span class="cmd-desc">newline</span></div>
-    <div class="cmd-row"><span class="cmd-name">↑↓ in palette</span><span class="cmd-desc">navigate commands</span></div>
-    <button id="help-close" onclick="document.getElementById('help-overlay').classList.remove('visible')">close</button>
+    <div class="cmd-row"><span class="cmd-name">Enter</span><span class="cmd-desc">Send message</span></div>
+    <div class="cmd-row"><span class="cmd-name">Shift+Enter</span><span class="cmd-desc">Newline</span></div>
+    <div class="cmd-row"><span class="cmd-name">↑↓ in palette</span><span class="cmd-desc">Navigate commands</span></div>
+    <button class="overlay-btn" onclick="document.getElementById('help-overlay').classList.remove('visible')">Close</button>
   </div>
 </div>
 
 <!-- ── History overlay ────────────────────────────────────────────────────────── -->
-<div id="history-overlay">
-  <div id="history-box">
-    <h2>session</h2>
+<div id="history-overlay" class="overlay">
+  <div class="overlay-box">
+    <h2>Session</h2>
     <div id="history-content"></div>
-    <button id="history-close" onclick="document.getElementById('history-overlay').classList.remove('visible')">close</button>
+    <button class="overlay-btn" onclick="document.getElementById('history-overlay').classList.remove('visible')">Close</button>
   </div>
 </div>
 
 <!-- ── Saves overlay ──────────────────────────────────────────────────────────── -->
-<div id="saves-overlay">
-  <div id="saves-box">
-    <h2>downloaded files</h2>
+<div id="saves-overlay" class="overlay">
+  <div class="overlay-box">
+    <h2>Downloaded Files</h2>
     <div id="saves-content"></div>
-    <button id="saves-close" onclick="document.getElementById('saves-overlay').classList.remove('visible')">close</button>
+    <button class="overlay-btn" onclick="document.getElementById('saves-overlay').classList.remove('visible')">Close</button>
   </div>
 </div>
 
@@ -589,9 +875,9 @@ html, body {
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONFIG — set this to your deployed Cloudflare Worker URL
+// HARDCODED WORKER URL - Replace with your actual worker URL
 // ═══════════════════════════════════════════════════════════════════════════════
-let WORKER_URL = localStorage.getItem('worker_url') || '';
+const WORKER_URL = 'https://deepai.anonbroton.workers.dev/';
 
 // ── Maps ─────────────────────────────────────────────────────────────────────
 const EXT_MAP = {
@@ -667,11 +953,17 @@ function renderResponse(text, streaming = false) {
       lspan.textContent = label;
       const copy  = document.createElement('button');
       copy.className = 'code-copy';
-      copy.textContent = 'copy';
+      copy.textContent = 'Copy';
       copy.onclick = () => {
         navigator.clipboard.writeText(content).then(() => {
-          copy.textContent = 'copied!';
-          setTimeout(() => copy.textContent = 'copy', 1500);
+          copy.textContent = 'Copied!';
+          copy.style.color = 'var(--green)';
+          copy.style.borderColor = 'var(--green)';
+          setTimeout(() => {
+            copy.textContent = 'Copy';
+            copy.style.color = '';
+            copy.style.borderColor = '';
+          }, 1500);
         });
       };
       hdr.append(lspan, copy);
@@ -705,7 +997,6 @@ function renderResponse(text, streaming = false) {
       if (streaming && isLast) {
         const cur = document.createElement('span');
         cur.className = 'stream-cursor';
-        // Append cursor to last element inside prose
         const lastEl = div.lastElementChild || div;
         lastEl.append(cur);
       }
@@ -916,7 +1207,7 @@ function appendDownloadBar(file) {
   bar.className = 'download-bar';
   bar.innerHTML = `
     <div class="file-meta"><span>${label}</span> · ${file.lines} lines${file.parts > 1 ? ` · ${file.parts} parts stitched` : ''}</div>
-    <button class="dl-btn" data-content="${encodeURIComponent(file.content)}" data-ext="${file.ext}" data-name="${name}">↓ download</button>
+    <button class="dl-btn" data-content="${encodeURIComponent(file.content)}" data-ext="${file.ext}" data-name="${name}">↓ Download</button>
   `;
 
   const btn = bar.querySelector('.dl-btn');
@@ -925,7 +1216,7 @@ function appendDownloadBar(file) {
     const filename = btn.dataset.name;
     downloadText(filename, content);
     STATE.saves.push({ name: filename, ext: btn.dataset.ext, content, lines: file.lines, ts: new Date().toISOString() });
-    btn.textContent = '✓ saved';
+    btn.textContent = '✓ Saved';
     btn.classList.add('saved');
   };
 
@@ -936,12 +1227,6 @@ function appendDownloadBar(file) {
 // ── Streaming ─────────────────────────────────────────────────────────────────
 async function sendMessage(text) {
   if (STATE.streaming) return;
-
-  // Validate worker URL
-  if (!WORKER_URL) {
-    showConfigBanner();
-    return;
-  }
 
   STATE.streaming = true;
   setStatus('loading');
@@ -1032,41 +1317,14 @@ function setStatus(state) {
   statusDot.className = 'status-dot ' + state;
 }
 
-// ── Config banner (when WORKER_URL is not set) ────────────────────────────────
-function showConfigBanner() {
-  if (document.getElementById('config-banner')) return;
-
-  const banner = document.createElement('div');
-  banner.id = 'config-banner';
-  banner.innerHTML = `
-    <p>⚠  Set your Cloudflare Worker URL to start chatting</p>
-    <p style="color:var(--dim3);font-size:11px;margin-bottom:6px;">
-      Deploy <code style="color:var(--yellow)">worker.js</code> to Cloudflare Workers, then paste the URL below.
-    </p>
-    <input id="worker-url-input" type="url" placeholder="https://your-worker.workers.dev" value="${WORKER_URL}">
-    <br>
-    <button onclick="saveWorkerUrl()">save & start</button>
-  `;
-  chatArea.prepend(banner);
-}
-
-function saveWorkerUrl() {
-  const val = document.getElementById('worker-url-input').value.trim().replace(/\/$/, '');
-  if (!val) return;
-  WORKER_URL = val;
-  localStorage.setItem('worker_url', val);
-  document.getElementById('config-banner')?.remove();
-  appendNotice('info', `✓ &nbsp;Worker URL saved. Start chatting!`);
-}
-
 // ── Command palette ───────────────────────────────────────────────────────────
 const COMMAND_LIST = [
-  { cmd: '/cls',         desc: 'clear the screen' },
-  { cmd: '/clear',       desc: 'wipe conversation history and stitch buffer' },
-  { cmd: '/backup_chat', desc: 'download session as Markdown' },
-  { cmd: '/history',     desc: 'session summary' },
-  { cmd: '/saves',       desc: 'files downloaded this session' },
-  { cmd: '/help',        desc: 'show all commands' },
+  { cmd: '/cls',         desc: 'Clear the screen' },
+  { cmd: '/clear',       desc: 'Wipe conversation history and stitch buffer' },
+  { cmd: '/backup_chat', desc: 'Download session as Markdown' },
+  { cmd: '/history',     desc: 'Session summary' },
+  { cmd: '/saves',       desc: 'Files downloaded this session' },
+  { cmd: '/help',        desc: 'Show all commands' },
 ];
 
 const palette     = document.getElementById('cmd-palette');
@@ -1120,7 +1378,7 @@ function selectPalette() {
 const CMD = {
   cls() {
     chatArea.innerHTML = '';
-    appendNotice('info', 'screen cleared');
+    appendNotice('info', 'Screen cleared');
   },
 
   clear() {
@@ -1128,12 +1386,12 @@ const CMD = {
     stitcher.reset();
     saveSession();
     chatArea.innerHTML = '';
-    appendNotice('info', 'history + stitch buffer cleared');
+    appendNotice('info', 'History + stitch buffer cleared');
   },
 
   backup_chat() {
     if (!STATE.history.length) {
-      appendNotice('info', 'nothing to export yet');
+      appendNotice('info', 'Nothing to export yet');
       return;
     }
     const turns = STATE.history.filter(m => m.role === 'user').length;
@@ -1150,7 +1408,7 @@ const CMD = {
     const stamp    = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const filename = `chat_${stamp}.md`;
     downloadText(filename, lines.join('\n'));
-    appendNotice('stitch-done', `✓ &nbsp;exported <strong>${filename}</strong>  (${turns} turns)`);
+    appendNotice('stitch-done', `✓ &nbsp;Exported <strong>${filename}</strong>  (${turns} turns)`);
   },
 
   history() {
@@ -1159,11 +1417,11 @@ const CMD = {
     const preview = first ? first.content.slice(0, 70).replace(/\n/g, ' ') + (first.content.length > 70 ? '…' : '') : '—';
 
     document.getElementById('history-content').innerHTML = `
-      <div class="hist-row"><span class="hist-key">session id</span><span class="hist-val">${STATE.sessionId.slice(0,8)}…</span></div>
-      <div class="hist-row"><span class="hist-key">started</span><span class="hist-val">${STATE.started.toLocaleString()}</span></div>
-      <div class="hist-row"><span class="hist-key">turns</span><span class="hist-val">${turns}</span></div>
-      <div class="hist-row"><span class="hist-key">worker url</span><span class="hist-val" style="color:var(--dim2);font-size:10px">${WORKER_URL || '— not set —'}</span></div>
-      <div class="hist-row"><span class="hist-key">first msg</span><span class="hist-val" style="color:var(--dim3)">${escHtml(preview)}</span></div>
+      <div class="hist-row"><span class="hist-key">Session ID</span><span class="hist-val">${STATE.sessionId.slice(0,8)}…</span></div>
+      <div class="hist-row"><span class="hist-key">Started</span><span class="hist-val">${STATE.started.toLocaleString()}</span></div>
+      <div class="hist-row"><span class="hist-key">Turns</span><span class="hist-val">${turns}</span></div>
+      <div class="hist-row"><span class="hist-key">Worker URL</span><span class="hist-val" style="color:var(--dim2);font-size:10px">${WORKER_URL || '— not set —'}</span></div>
+      <div class="hist-row"><span class="hist-key">First Message</span><span class="hist-val" style="color:var(--dim3)">${escHtml(preview)}</span></div>
     `;
     document.getElementById('history-overlay').classList.add('visible');
   },
@@ -1171,13 +1429,13 @@ const CMD = {
   saves() {
     const content = document.getElementById('saves-content');
     if (!STATE.saves.length) {
-      content.innerHTML = '<div style="color:var(--dim2);font-size:11px;padding:10px 0">no files downloaded this session</div>';
+      content.innerHTML = '<div style="color:var(--dim2);font-size:11px;padding:10px 0">No files downloaded this session</div>';
     } else {
       content.innerHTML = STATE.saves.map((s, i) => `
         <div class="save-row">
           <span class="save-name">${escHtml(s.name)}</span>
           <span class="save-meta">${s.lines} lines</span>
-          <span class="save-dl" onclick="redownload(${i})">↓ re-download</span>
+          <span class="save-dl" onclick="redownload(${i})">↓ Re-download</span>
         </div>
       `).join('');
     }
@@ -1197,7 +1455,7 @@ function redownload(idx) {
 // ── Input handling ────────────────────────────────────────────────────────────
 function autoResize() {
   inputEl.style.height = 'auto';
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 180) + 'px';
 }
 
 inputEl.addEventListener('input', () => {
@@ -1215,6 +1473,7 @@ inputEl.addEventListener('keydown', e => {
   if (!palette.classList.contains('hidden')) {
     if (e.key === 'ArrowDown') { e.preventDefault(); movePalette(1);  return; }
     if (e.key === 'ArrowUp')   { e.preventDefault(); movePalette(-1); return; }
+
     if (e.key === 'Tab')       { e.preventDefault(); selectPalette(); return; }
     if (e.key === 'Escape')    { hidePalette(); return; }
     if (e.key === 'Enter' && palSelected >= 0) {
@@ -1246,7 +1505,7 @@ function submit() {
     if (CMD[key]) {
       CMD[key]();
     } else {
-      appendNotice('info', `unknown command: ${escHtml(raw)} — try /help`);
+      appendNotice('info', `Unknown command: ${escHtml(raw)} — try /help`);
     }
     return;
   }
@@ -1292,14 +1551,49 @@ document.addEventListener('keydown', e => {
   setStatus('online');
   updatePill();
 
-  if (!WORKER_URL) {
-    showConfigBanner();
-  } else {
-    appendNotice('info', `↑ &nbsp;session started &nbsp;·&nbsp; auto-saving to localStorage &nbsp;·&nbsp; /help for commands`);
-  }
+  // Welcome message
+  appendNotice('info', `
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span>✓ &nbsp;Connected to DeepSeek v3.2</span>
+      <span style="color: var(--accent); font-size: 10px; background: rgba(212, 146, 10, 0.1); padding: 2px 6px; border-radius: 3px;">READY</span>
+    </div>
+    <div style="margin-top: 4px; color: var(--dim2); font-size: 11px;">
+      Auto-saving to localStorage · /help for commands
+    </div>
+  `);
 
   inputEl.focus();
 })();
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
