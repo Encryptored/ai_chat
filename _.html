@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>deepseek chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+/* ── Reset & root ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0a0a0a;
+  --bg2:       #101010;
+  --bg3:       #161616;
+  --bg4:       #1c1c1c;
+  --border:    #1e1e1e;
+  --border2:   #272727;
+  --text:      #d0d0d0;
+  --dim:       #3e3e3e;
+  --dim2:      #5a5a5a;
+  --dim3:      #7a7a7a;
+  --accent:    #d4920a;   /* phosphor amber */
+  --accent2:   #a06808;
+  --cyan:      #4ec9b0;
+  --green:     #6fcf97;
+  --red:       #e05c5c;
+  --yellow:    #e8c060;
+  --font:      'JetBrains Mono', monospace;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--dim2); }
+
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  flex-shrink: 0;
+  animation: pulse-dot 3s ease-in-out infinite;
+}
+.status-dot.offline { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
+.status-dot.loading { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse-dot 0.8s ease-in-out infinite; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.model-tag {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+.via-tag { color: var(--dim2); font-size: 11px; }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.session-pill {
+  color: var(--dim2);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.header-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--dim3);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.header-btn:hover { color: var(--text); border-color: var(--dim2); }
+
+/* ── Chat area ─────────────────────────────────────────────────────────────── */
+#chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+  scroll-behavior: smooth;
+}
+
+/* ── Worker config banner ──────────────────────────────────────────────────── */
+#config-banner {
+  margin: 20px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--accent2);
+  border-radius: 4px;
+  background: #1a1200;
+}
+#config-banner p { color: var(--yellow); font-size: 12px; margin-bottom: 8px; }
+#config-banner input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  outline: none;
+  margin-top: 4px;
+}
+#config-banner input:focus { border-color: var(--accent2); }
+#config-banner button {
+  margin-top: 8px;
+  background: var(--accent2);
+  border: none;
+  color: #000;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+#config-banner button:hover { background: var(--accent); }
+
+/* ── Messages ──────────────────────────────────────────────────────────────── */
+.msg-group {
+  margin-top: 22px;
+  animation: fadein 0.2s ease;
+}
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.msg-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.msg-ts   { color: var(--dim2); font-size: 10px; }
+.msg-role { font-size: 12px; font-weight: 500; }
+.msg-role.you { color: var(--text); }
+.msg-role.ai  { color: var(--cyan); }
+
+.msg-body { padding-left: 0; }
+
+/* Prose content inside AI messages */
+.prose { color: var(--text); line-height: 1.7; }
+.prose p  { margin-bottom: 0.75em; }
+.prose p:last-child { margin-bottom: 0; }
+.prose h1, .prose h2, .prose h3 { color: var(--text); font-weight: 500; margin: 1em 0 0.4em; }
+.prose h1 { font-size: 1.15em; }
+.prose h2 { font-size: 1.05em; }
+.prose h3 { font-size: 1em; color: var(--dim3); }
+.prose strong { color: var(--text); font-weight: 600; }
+.prose em     { color: var(--dim3); font-style: italic; }
+.prose ul, .prose ol { padding-left: 1.4em; margin-bottom: 0.75em; }
+.prose li { margin-bottom: 0.2em; }
+.prose a  { color: var(--accent); text-decoration: none; }
+.prose a:hover { text-decoration: underline; }
+.prose code { /* inline code */
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--yellow);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-size: 0.9em;
+}
+.prose hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.prose blockquote {
+  border-left: 2px solid var(--dim);
+  padding-left: 12px;
+  color: var(--dim3);
+  margin: 0.6em 0;
+}
+.prose table { border-collapse: collapse; margin: 0.6em 0; font-size: 0.9em; }
+.prose th, .prose td { border: 1px solid var(--border2); padding: 5px 10px; }
+.prose th { color: var(--dim3); font-weight: 500; }
+
+/* User message text */
+.user-text { color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
+/* ── Code panels ───────────────────────────────────────────────────────────── */
+.code-panel {
+  position: relative;
+  margin: 10px 0;
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  background: var(--bg2);
+  overflow: hidden;
+}
+.code-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.code-lang { color: var(--dim3); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.code-copy {
+  background: none;
+  border: none;
+  color: var(--dim2);
+  font-family: var(--font);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+.code-copy:hover { color: var(--text); }
+.code-body {
+  padding: 12px 14px;
+  overflow-x: auto;
+  color: var(--dim3);
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* ── Streaming cursor ──────────────────────────────────────────────────────── */
+.stream-cursor {
+  display: inline-block;
+  width: 7px; height: 14px;
+  background: var(--accent);
+  border-radius: 1px;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ── Stitch / system notices ───────────────────────────────────────────────── */
+.notice {
+  margin: 14px 0 4px;
+  padding: 7px 12px;
+  border-radius: 3px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.notice.stitch-progress { border: 1px solid var(--border2); color: var(--dim3); background: var(--bg2); }
+.notice.stitch-done     { border: 1px solid #1d3a2a; color: var(--green); background: #0b1c12; }
+.notice.error           { border: 1px solid #3a1d1d; color: var(--red);   background: #1c0b0b; }
+.notice.info            { border: 1px solid var(--border2); color: var(--dim3); background: var(--bg2); }
+
+/* ── Download bar ──────────────────────────────────────────────────────────── */
+.download-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  background: var(--bg2);
+  font-size: 11px;
+}
+.download-bar .file-meta { color: var(--dim3); flex: 1; }
+.download-bar .file-meta span { color: var(--text); }
+.dl-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--cyan);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.dl-btn:hover { background: rgba(78,201,176,0.08); border-color: var(--cyan); }
+.dl-btn.saved { color: var(--green); border-color: #1d3a2a; pointer-events: none; }
+
+/* ── Help overlay ──────────────────────────────────────────────────────────── */
+#help-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#help-overlay.visible { display: flex; }
+#help-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 24px 28px;
+  min-width: 400px;
+  max-width: 520px;
+  animation: fadein 0.15s ease;
+}
+#help-box h2 { font-size: 12px; color: var(--dim3); margin-bottom: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+.cmd-row { display: flex; gap: 16px; margin-bottom: 10px; align-items: baseline; }
+.cmd-name { color: var(--cyan); font-size: 12px; min-width: 130px; }
+.cmd-desc { color: var(--dim3); font-size: 11px; }
+#help-box hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+#help-close {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--dim3);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 10px;
+  float: right;
+}
+#help-close:hover { color: var(--text); }
+
+/* ── History overlay ───────────────────────────────────────────────────────── */
+#history-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#history-overlay.visible { display: flex; }
+#history-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 24px 28px;
+  min-width: 420px;
+  animation: fadein 0.15s ease;
+}
+#history-box h2 { font-size: 12px; color: var(--dim3); margin-bottom: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+.hist-row { display: flex; gap: 16px; margin-bottom: 9px; font-size: 12px; }
+.hist-key { color: var(--dim2); min-width: 110px; }
+.hist-val { color: var(--text); }
+#history-close {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--dim3);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 14px;
+  float: right;
+}
+#history-close:hover { color: var(--text); }
+
+/* ── Command palette ───────────────────────────────────────────────────────── */
+#cmd-palette {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 20px; right: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 50;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
+}
+#cmd-palette.hidden { display: none; }
+.pal-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.pal-item:hover, .pal-item.selected { background: var(--bg3); }
+.pal-cmd  { color: var(--cyan); font-size: 12px; min-width: 120px; }
+.pal-desc { color: var(--dim2); font-size: 11px; }
+
+/* ── Input area ────────────────────────────────────────────────────────────── */
+#input-area {
+  position: relative;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  padding: 12px 20px 14px;
+  flex-shrink: 0;
+}
+
+.input-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.prompt-char { color: var(--accent); font-size: 14px; padding-top: 1px; flex-shrink: 0; user-select: none; }
+
+#input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  min-height: 21px;
+  max-height: 160px;
+  overflow-y: auto;
+  caret-color: var(--accent);
+}
+#input::placeholder { color: var(--dim); }
+
+.input-hint {
+  margin-top: 5px;
+  padding-left: 22px;
+  font-size: 10px;
+  color: var(--dim);
+  min-height: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ── Saves panel ───────────────────────────────────────────────────────────── */
+#saves-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(2px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+#saves-overlay.visible { display: flex; }
+#saves-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 24px 28px;
+  min-width: 460px;
+  max-height: 70vh;
+  overflow-y: auto;
+  animation: fadein 0.15s ease;
+}
+#saves-box h2 { font-size: 12px; color: var(--dim3); margin-bottom: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.save-row:last-child { border-bottom: none; }
+.save-name { color: var(--text); flex: 1; }
+.save-meta { color: var(--dim2); }
+.save-dl { color: var(--cyan); cursor: pointer; }
+.save-dl:hover { text-decoration: underline; }
+#saves-close {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--dim3);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 5px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-top: 14px;
+  float: right;
+}
+#saves-close:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- ── App shell ──────────────────────────────────────────────────────────── -->
+<div id="app">
+
+  <header id="header">
+    <div class="header-left">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="model-tag">deepseek-v3.2</span>
+      <span class="via-tag">via deepai</span>
+    </div>
+    <div class="header-right">
+      <span class="session-pill" id="session-pill"></span>
+      <button class="header-btn" onclick="CMD.history()">/history</button>
+      <button class="header-btn" onclick="CMD.help()">/help</button>
+    </div>
+  </header>
+
+  <div id="chat-area"></div>
+
+  <div id="input-area">
+    <div id="cmd-palette" class="hidden"></div>
+    <div class="input-row">
+      <span class="prompt-char">›</span>
+      <textarea id="input" rows="1" placeholder="message or /command" spellcheck="false"></textarea>
+    </div>
+    <div class="input-hint" id="input-hint">
+      <span>Enter to send</span><span>Shift+Enter new line</span><span>/ for commands</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Help overlay ──────────────────────────────────────────────────────────── -->
+<div id="help-overlay">
+  <div id="help-box">
+    <h2>commands</h2>
+    <div class="cmd-row"><span class="cmd-name">/cls</span><span class="cmd-desc">clear the screen</span></div>
+    <div class="cmd-row"><span class="cmd-name">/clear</span><span class="cmd-desc">wipe conversation history and stitch buffer</span></div>
+    <div class="cmd-row"><span class="cmd-name">/backup_chat</span><span class="cmd-desc">download session as Markdown</span></div>
+    <div class="cmd-row"><span class="cmd-name">/history</span><span class="cmd-desc">session summary</span></div>
+    <div class="cmd-row"><span class="cmd-name">/saves</span><span class="cmd-desc">files downloaded this session</span></div>
+    <div class="cmd-row"><span class="cmd-name">/help</span><span class="cmd-desc">show this panel</span></div>
+    <hr>
+    <div class="cmd-row"><span class="cmd-name">Enter</span><span class="cmd-desc">send message</span></div>
+    <div class="cmd-row"><span class="cmd-name">Shift+Enter</span><span class="cmd-desc">newline</span></div>
+    <div class="cmd-row"><span class="cmd-name">↑↓ in palette</span><span class="cmd-desc">navigate commands</span></div>
+    <button id="help-close" onclick="document.getElementById('help-overlay').classList.remove('visible')">close</button>
+  </div>
+</div>
+
+<!-- ── History overlay ────────────────────────────────────────────────────────── -->
+<div id="history-overlay">
+  <div id="history-box">
+    <h2>session</h2>
+    <div id="history-content"></div>
+    <button id="history-close" onclick="document.getElementById('history-overlay').classList.remove('visible')">close</button>
+  </div>
+</div>
+
+<!-- ── Saves overlay ──────────────────────────────────────────────────────────── -->
+<div id="saves-overlay">
+  <div id="saves-box">
+    <h2>downloaded files</h2>
+    <div id="saves-content"></div>
+    <button id="saves-close" onclick="document.getElementById('saves-overlay').classList.remove('visible')">close</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFIG — set this to your deployed Cloudflare Worker URL
+// ═══════════════════════════════════════════════════════════════════════════════
+let WORKER_URL = localStorage.getItem('worker_url') || '';
+
+// ── Maps ─────────────────────────────────────────────────────────────────────
+const EXT_MAP = {
+  html:'html',htm:'html',css:'css',js:'js',javascript:'js',ts:'ts',typescript:'ts',
+  py:'py',python:'py',sh:'sh',bash:'sh',zsh:'sh',json:'json',xml:'xml',yaml:'yaml',
+  yml:'yaml',toml:'toml',md:'md',markdown:'md',sql:'sql',php:'php',rb:'rb',ruby:'rb',
+  rs:'rs',rust:'rs',go:'go',c:'c',cpp:'cpp',java:'java',kt:'kt',kotlin:'kt',
+  swift:'swift',dart:'dart',lua:'lua',r:'r',tex:'tex',latex:'tex',svg:'svg',
+  csv:'csv',txt:'txt',text:'txt',ini:'ini',cfg:'cfg',conf:'conf',
+};
+const LANG_LABELS = {
+  py:'Python',js:'JavaScript',ts:'TypeScript',html:'HTML',css:'CSS',sh:'Shell',
+  json:'JSON',sql:'SQL',rs:'Rust',go:'Go',cpp:'C++',java:'Java',rb:'Ruby',
+  php:'PHP',md:'Markdown',yaml:'YAML',toml:'TOML',xml:'XML',c:'C',kt:'Kotlin',
+  swift:'Swift',dart:'Dart',lua:'Lua',r:'R',tex:'LaTeX',svg:'SVG',csv:'CSV',
+};
+
+function langLabel(lang, ext) {
+  const lk = (ext && LANG_LABELS[ext]) ? ext : lang;
+  return LANG_LABELS[lk] || (lang ? lang.toUpperCase() : 'code');
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const STATE = {
+  history:    [],           // [{role, content, ts}]
+  sessionId:  crypto.randomUUID(),
+  started:    new Date(),
+  saves:      [],           // [{name, ext, content, lines, ts}]
+  streaming:  false,
+};
+
+// ── Session persistence (localStorage) ───────────────────────────────────────
+function saveSession() {
+  try {
+    localStorage.setItem('chat_session', JSON.stringify({
+      id:       STATE.sessionId,
+      started:  STATE.started.toISOString(),
+      history:  STATE.history,
+    }));
+  } catch(_) {}
+}
+
+// ── Marked configuration ──────────────────────────────────────────────────────
+marked.setOptions({ breaks: true, gfm: true });
+
+// ── Fence regex ───────────────────────────────────────────────────────────────
+const FENCE_RE = /(`{3}[ \t]*[a-zA-Z0-9+\-_]*\n[\s\S]*?(?:`{3}|$))/g;
+const BLOCK_RE = /^`{3}[ \t]*([a-zA-Z0-9+\-_]*)\n([\s\S]*?)(?:`{3}|$)/;
+
+// ── Renderer ──────────────────────────────────────────────────────────────────
+function renderResponse(text, streaming = false) {
+  const container = document.createElement('div');
+  const parts = text.split(FENCE_RE);
+
+  parts.forEach((part, idx) => {
+    const isLast = idx === parts.length - 1;
+    const m = BLOCK_RE.exec(part.trim());
+
+    if (m) {
+      // ── Code panel
+      const lang    = m[1].trim().toLowerCase();
+      const content = m[2].trimEnd();
+      const ext     = EXT_MAP[lang] || lang || 'txt';
+      const label   = langLabel(lang, ext);
+
+      const panel  = document.createElement('div');
+      panel.className = 'code-panel';
+
+      const hdr   = document.createElement('div');
+      hdr.className = 'code-panel-header';
+      const lspan = document.createElement('span');
+      lspan.className = 'code-lang';
+      lspan.textContent = label;
+      const copy  = document.createElement('button');
+      copy.className = 'code-copy';
+      copy.textContent = 'copy';
+      copy.onclick = () => {
+        navigator.clipboard.writeText(content).then(() => {
+          copy.textContent = 'copied!';
+          setTimeout(() => copy.textContent = 'copy', 1500);
+        });
+      };
+      hdr.append(lspan, copy);
+
+      const body  = document.createElement('div');
+      body.className = 'code-body';
+      body.textContent = content;
+
+      if (streaming && isLast) {
+        const cur = document.createElement('span');
+        cur.className = 'stream-cursor';
+        body.append(cur);
+      }
+
+      panel.append(hdr, body);
+      container.append(panel);
+
+    } else {
+      // ── Prose
+      const trimmed = part.trim();
+      if (!trimmed) return;
+
+      const display = streaming && isLast
+        ? trimmed + ' \u00A0'
+        : trimmed;
+
+      const div = document.createElement('div');
+      div.className = 'prose';
+      div.innerHTML = marked.parse(display);
+
+      if (streaming && isLast) {
+        const cur = document.createElement('span');
+        cur.className = 'stream-cursor';
+        // Append cursor to last element inside prose
+        const lastEl = div.lastElementChild || div;
+        lastEl.append(cur);
+      }
+
+      container.append(div);
+    }
+  });
+
+  return container;
+}
+
+// ── CodeStitcher ──────────────────────────────────────────────────────────────
+class CodeStitcher {
+  constructor() { this.reset(); }
+
+  reset() {
+    this.lang   = '';
+    this.ext    = '';
+    this.parts  = [];
+    this.active = false;
+  }
+
+  _fences(text) {
+    return [...text.matchAll(/```/g)];
+  }
+
+  _afterFence(text, end) {
+    const after = text.slice(end);
+    const m     = after.match(/^([a-zA-Z0-9+\-_]*)\n?/);
+    const lang  = m ? m[1].trim().toLowerCase() : '';
+    const body  = m ? after.slice(m[0].length) : after;
+    return [lang, body];
+  }
+
+  _removeOverlap(base, newStr, window = 8) {
+    const bl = base.trimEnd().split('\n');
+    const nl = newStr.trimStart().split('\n');
+    for (let n = Math.min(window, bl.length, nl.length); n > 0; n--) {
+      if (bl.slice(-n).join('\n') === nl.slice(0, n).join('\n')) {
+        return nl.slice(n).join('\n');
+      }
+    }
+    return newStr;
+  }
+
+  checkTruncated(text) {
+    const fences = this._fences(text);
+    if (!fences.length || fences.length % 2 === 0) return [false, '', ''];
+    const last = fences[fences.length - 1];
+    const [lang, body] = this._afterFence(text, last.index + 3);
+    return [true, lang, body];
+  }
+
+  extractContinuation(text) {
+    const fences = this._fences(text);
+    if (!fences.length) return [this.lang, text.trim()]; // raw dump
+
+    const opening = fences[0];
+    const [lang] = this._afterFence(text, opening.index + 3);
+    const useLang = lang || this.lang;
+
+    if (fences.length >= 2) {
+      const contentStart = opening.index + 3 + useLang.length + 1;
+      const content = text.slice(contentStart, fences[1].index).trimEnd();
+      return [useLang, content];
+    } else {
+      const [, content] = this._afterFence(text, opening.index + 3);
+      return [useLang, content];
+    }
+  }
+
+  process(response) {
+    const wasActive = this.active;
+    const [truncated, lang, partial] = this.checkTruncated(response);
+
+    if (this.active) {
+      const [contLang, contCode] = this.extractContinuation(response);
+      if (contLang && !this.lang) {
+        this.lang = contLang;
+        this.ext  = EXT_MAP[contLang] || contLang || 'txt';
+      }
+      const prev = this.parts[this.parts.length - 1] || '';
+      if (truncated) {
+        this.parts.push(this._removeOverlap(prev, partial));
+        return [true, true];
+      } else {
+        this.parts.push(this._removeOverlap(prev, contCode));
+        return [true, false];
+      }
+    } else {
+      if (truncated) {
+        this.active = true;
+        this.lang   = lang;
+        this.ext    = EXT_MAP[lang] || lang || 'txt';
+        this.parts  = [partial];
+        return [false, true];
+      }
+      return [false, false];
+    }
+  }
+
+  getStitched() {
+    if (!this.parts.length) return null;
+    const combined = this.parts.join('\n');
+    const lines = combined.split('\n').filter(l => l.trim());
+    return { lang: this.lang, ext: this.ext, content: combined, lines: lines.length, parts: this.parts.length };
+  }
+}
+
+const stitcher = new CodeStitcher();
+
+// ── File detection in normal (non-truncated) responses ────────────────────────
+function detectFiles(text) {
+  const found = [];
+  const re = /```[ \t]*([a-zA-Z0-9+\-_]*)\n([\s\S]*?)```/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const lang    = m[1].trim().toLowerCase();
+    const content = m[2];
+    const lines   = content.split('\n').filter(l => l.trim());
+    if (lines.length < 6) continue;
+    const ext = EXT_MAP[lang] || lang || 'txt';
+    found.push({ lang, ext, content, lines: lines.length, parts: 1 });
+  }
+  return found;
+}
+
+// ── Download helper ───────────────────────────────────────────────────────────
+function downloadText(filename, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function suggestFilename(ext) {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const base = { html:'page',py:'script',js:'script',css:'style',sh:'run',json:'data',sql:'query',md:'notes' }[ext] || 'file';
+  return `${base}_${ts}.${ext}`;
+}
+
+// ── Chat UI helpers ───────────────────────────────────────────────────────────
+const chatArea  = document.getElementById('chat-area');
+const inputEl   = document.getElementById('input');
+const statusDot = document.getElementById('status-dot');
+
+function scrollToBottom() {
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function ts() {
+  return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function addUserMessage(text) {
+  const group = document.createElement('div');
+  group.className = 'msg-group';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'msg-header';
+  hdr.innerHTML = `<span class="msg-ts">${ts()}</span><span class="msg-role you">you</span>`;
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  const p = document.createElement('div');
+  p.className = 'user-text';
+  p.textContent = text;
+  body.append(p);
+
+  group.append(hdr, body);
+  chatArea.append(group);
+  scrollToBottom();
+}
+
+function createAiGroup() {
+  const group = document.createElement('div');
+  group.className = 'msg-group';
+
+  const hdr = document.createElement('div');
+  hdr.className = 'msg-header';
+  hdr.innerHTML = `<span class="msg-ts">${ts()}</span><span class="msg-role ai">ai</span>`;
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+  body.id = 'streaming-body';
+
+  group.append(hdr, body);
+  chatArea.append(group);
+  scrollToBottom();
+  return body;
+}
+
+function appendNotice(type, html) {
+  const div = document.createElement('div');
+  div.className = `notice ${type}`;
+  div.innerHTML = html;
+  chatArea.append(div);
+  scrollToBottom();
+  return div;
+}
+
+function appendDownloadBar(file) {
+  const label = langLabel(file.lang, file.ext);
+  const name  = suggestFilename(file.ext);
+
+  const bar = document.createElement('div');
+  bar.className = 'download-bar';
+  bar.innerHTML = `
+    <div class="file-meta"><span>${label}</span> · ${file.lines} lines${file.parts > 1 ? ` · ${file.parts} parts stitched` : ''}</div>
+    <button class="dl-btn" data-content="${encodeURIComponent(file.content)}" data-ext="${file.ext}" data-name="${name}">↓ download</button>
+  `;
+
+  const btn = bar.querySelector('.dl-btn');
+  btn.onclick = () => {
+    const content  = decodeURIComponent(btn.dataset.content);
+    const filename = btn.dataset.name;
+    downloadText(filename, content);
+    STATE.saves.push({ name: filename, ext: btn.dataset.ext, content, lines: file.lines, ts: new Date().toISOString() });
+    btn.textContent = '✓ saved';
+    btn.classList.add('saved');
+  };
+
+  chatArea.append(bar);
+  scrollToBottom();
+}
+
+// ── Streaming ─────────────────────────────────────────────────────────────────
+async function sendMessage(text) {
+  if (STATE.streaming) return;
+
+  // Validate worker URL
+  if (!WORKER_URL) {
+    showConfigBanner();
+    return;
+  }
+
+  STATE.streaming = true;
+  setStatus('loading');
+
+  const ts_now = new Date().toISOString();
+  STATE.history.push({ role: 'user', content: text, ts: ts_now });
+
+  addUserMessage(text);
+
+  const apiHistory = STATE.history.map(m => ({ role: m.role, content: m.content }));
+  const body       = createAiGroup();
+  let   full       = '';
+
+  try {
+    const res = await fetch(WORKER_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ history: apiHistory, model: 'deepseek-v3.2' }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      full += decoder.decode(value, { stream: true });
+
+      // Live-update the streaming body
+      body.innerHTML = '';
+      body.append(renderResponse(full, true));
+      scrollToBottom();
+    }
+
+    // Final clean render
+    body.innerHTML = '';
+    body.append(renderResponse(full, false));
+    scrollToBottom();
+
+    // Record in history and auto-save
+    STATE.history.push({ role: 'assistant', content: full, ts: new Date().toISOString() });
+    saveSession();
+
+    // Stitch / file detection
+    const [wasActive, stillTruncated] = stitcher.process(full);
+
+    if (stillTruncated) {
+      const label = langLabel(stitcher.lang, stitcher.ext);
+      appendNotice('stitch-progress',
+        `✂ &nbsp;<strong>${label}</strong> · part ${stitcher.parts.length} captured — say <strong>continue</strong> to get the rest`
+      );
+    } else if (wasActive) {
+      const stitched = stitcher.getStitched();
+      stitcher.reset();
+      if (stitched) {
+        const label = langLabel(stitched.lang, stitched.ext);
+        appendNotice('stitch-done', `✓ &nbsp;<strong>${label}</strong> · ${stitched.parts}-part stitch · ${stitched.lines} lines`);
+        appendDownloadBar(stitched);
+      }
+    } else {
+      const files = detectFiles(full);
+      files.forEach(f => appendDownloadBar(f));
+    }
+
+    setStatus('online');
+
+  } catch (err) {
+    body.innerHTML = '';
+    appendNotice('error', `✕ &nbsp;${escHtml(err.message)}`);
+    // Remove the failed user message from history
+    STATE.history.pop();
+    setStatus('online');
+  }
+
+  STATE.streaming = false;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setStatus(state) {
+  statusDot.className = 'status-dot ' + state;
+}
+
+// ── Config banner (when WORKER_URL is not set) ────────────────────────────────
+function showConfigBanner() {
+  if (document.getElementById('config-banner')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'config-banner';
+  banner.innerHTML = `
+    <p>⚠  Set your Cloudflare Worker URL to start chatting</p>
+    <p style="color:var(--dim3);font-size:11px;margin-bottom:6px;">
+      Deploy <code style="color:var(--yellow)">worker.js</code> to Cloudflare Workers, then paste the URL below.
+    </p>
+    <input id="worker-url-input" type="url" placeholder="https://your-worker.workers.dev" value="${WORKER_URL}">
+    <br>
+    <button onclick="saveWorkerUrl()">save & start</button>
+  `;
+  chatArea.prepend(banner);
+}
+
+function saveWorkerUrl() {
+  const val = document.getElementById('worker-url-input').value.trim().replace(/\/$/, '');
+  if (!val) return;
+  WORKER_URL = val;
+  localStorage.setItem('worker_url', val);
+  document.getElementById('config-banner')?.remove();
+  appendNotice('info', `✓ &nbsp;Worker URL saved. Start chatting!`);
+}
+
+// ── Command palette ───────────────────────────────────────────────────────────
+const COMMAND_LIST = [
+  { cmd: '/cls',         desc: 'clear the screen' },
+  { cmd: '/clear',       desc: 'wipe conversation history and stitch buffer' },
+  { cmd: '/backup_chat', desc: 'download session as Markdown' },
+  { cmd: '/history',     desc: 'session summary' },
+  { cmd: '/saves',       desc: 'files downloaded this session' },
+  { cmd: '/help',        desc: 'show all commands' },
+];
+
+const palette     = document.getElementById('cmd-palette');
+let   palSelected = -1;
+let   palFiltered = [];
+
+function showPalette(query) {
+  const q = query.toLowerCase();
+  palFiltered = COMMAND_LIST.filter(c => c.cmd.startsWith(q) || c.desc.includes(q));
+  palSelected = palFiltered.length > 0 ? 0 : -1;
+
+  if (!palFiltered.length) { hidePalette(); return; }
+
+  palette.innerHTML = '';
+  palette.classList.remove('hidden');
+
+  palFiltered.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'pal-item' + (idx === 0 ? ' selected' : '');
+    row.innerHTML = `<span class="pal-cmd">${item.cmd}</span><span class="pal-desc">${item.desc}</span>`;
+    row.onclick = () => { inputEl.value = item.cmd; hidePalette(); inputEl.focus(); };
+    palette.append(row);
+  });
+}
+
+function hidePalette() {
+  palette.classList.add('hidden');
+  palSelected = -1;
+  palFiltered = [];
+}
+
+function movePalette(dir) {
+  if (!palFiltered.length) return false;
+  palSelected = (palSelected + dir + palFiltered.length) % palFiltered.length;
+  palette.querySelectorAll('.pal-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === palSelected);
+  });
+  return true;
+}
+
+function selectPalette() {
+  if (palSelected >= 0 && palFiltered[palSelected]) {
+    inputEl.value = palFiltered[palSelected].cmd;
+    hidePalette();
+    return true;
+  }
+  return false;
+}
+
+// ── Commands ──────────────────────────────────────────────────────────────────
+const CMD = {
+  cls() {
+    chatArea.innerHTML = '';
+    appendNotice('info', 'screen cleared');
+  },
+
+  clear() {
+    STATE.history = [];
+    stitcher.reset();
+    saveSession();
+    chatArea.innerHTML = '';
+    appendNotice('info', 'history + stitch buffer cleared');
+  },
+
+  backup_chat() {
+    if (!STATE.history.length) {
+      appendNotice('info', 'nothing to export yet');
+      return;
+    }
+    const turns = STATE.history.filter(m => m.role === 'user').length;
+    const lines = [
+      `# Chat — ${STATE.started.toLocaleString()}`,
+      `> model: deepseek-v3.2  ·  turns: ${turns}`,
+      '',
+    ];
+    STATE.history.forEach(m => {
+      const role   = m.role === 'user' ? '**you**' : '**ai**';
+      const header = m.ts ? `### ${role}  \`${m.ts}\`` : `### ${role}`;
+      lines.push(header, '', m.content, '');
+    });
+    const stamp    = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `chat_${stamp}.md`;
+    downloadText(filename, lines.join('\n'));
+    appendNotice('stitch-done', `✓ &nbsp;exported <strong>${filename}</strong>  (${turns} turns)`);
+  },
+
+  history() {
+    const turns   = STATE.history.filter(m => m.role === 'user').length;
+    const first   = STATE.history.find(m => m.role === 'user');
+    const preview = first ? first.content.slice(0, 70).replace(/\n/g, ' ') + (first.content.length > 70 ? '…' : '') : '—';
+
+    document.getElementById('history-content').innerHTML = `
+      <div class="hist-row"><span class="hist-key">session id</span><span class="hist-val">${STATE.sessionId.slice(0,8)}…</span></div>
+      <div class="hist-row"><span class="hist-key">started</span><span class="hist-val">${STATE.started.toLocaleString()}</span></div>
+      <div class="hist-row"><span class="hist-key">turns</span><span class="hist-val">${turns}</span></div>
+      <div class="hist-row"><span class="hist-key">worker url</span><span class="hist-val" style="color:var(--dim2);font-size:10px">${WORKER_URL || '— not set —'}</span></div>
+      <div class="hist-row"><span class="hist-key">first msg</span><span class="hist-val" style="color:var(--dim3)">${escHtml(preview)}</span></div>
+    `;
+    document.getElementById('history-overlay').classList.add('visible');
+  },
+
+  saves() {
+    const content = document.getElementById('saves-content');
+    if (!STATE.saves.length) {
+      content.innerHTML = '<div style="color:var(--dim2);font-size:11px;padding:10px 0">no files downloaded this session</div>';
+    } else {
+      content.innerHTML = STATE.saves.map((s, i) => `
+        <div class="save-row">
+          <span class="save-name">${escHtml(s.name)}</span>
+          <span class="save-meta">${s.lines} lines</span>
+          <span class="save-dl" onclick="redownload(${i})">↓ re-download</span>
+        </div>
+      `).join('');
+    }
+    document.getElementById('saves-overlay').classList.add('visible');
+  },
+
+  help() {
+    document.getElementById('help-overlay').classList.add('visible');
+  },
+};
+
+function redownload(idx) {
+  const s = STATE.saves[idx];
+  if (s) downloadText(s.name, s.content);
+}
+
+// ── Input handling ────────────────────────────────────────────────────────────
+function autoResize() {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+}
+
+inputEl.addEventListener('input', () => {
+  autoResize();
+  const val = inputEl.value;
+  if (val.startsWith('/')) {
+    showPalette(val);
+  } else {
+    hidePalette();
+  }
+});
+
+inputEl.addEventListener('keydown', e => {
+  // Navigate palette
+  if (!palette.classList.contains('hidden')) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); movePalette(1);  return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); movePalette(-1); return; }
+    if (e.key === 'Tab')       { e.preventDefault(); selectPalette(); return; }
+    if (e.key === 'Escape')    { hidePalette(); return; }
+    if (e.key === 'Enter' && palSelected >= 0) {
+      e.preventDefault();
+      selectPalette();
+      return;
+    }
+  }
+
+  // Send on Enter (not Shift+Enter)
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submit();
+    return;
+  }
+});
+
+function submit() {
+  const raw = inputEl.value.trim();
+  if (!raw) return;
+
+  hidePalette();
+  inputEl.value = '';
+  autoResize();
+
+  // Slash commands
+  if (raw.startsWith('/')) {
+    const key = raw.slice(1).toLowerCase().split(' ')[0];
+    if (CMD[key]) {
+      CMD[key]();
+    } else {
+      appendNotice('info', `unknown command: ${escHtml(raw)} — try /help`);
+    }
+    return;
+  }
+
+  if (!STATE.streaming) {
+    sendMessage(raw);
+  }
+}
+
+// ── Header session pill ───────────────────────────────────────────────────────
+function updatePill() {
+  const turns = STATE.history.filter(m => m.role === 'user').length;
+  document.getElementById('session-pill').textContent =
+    turns > 0 ? `${turns} turn${turns !== 1 ? 's' : ''}` : '';
+}
+
+// Hook into state changes
+const origSave = saveSession;
+window.saveSession = function() {
+  origSave();
+  updatePill();
+};
+
+// ── Close overlays on backdrop click ─────────────────────────────────────────
+['help-overlay','history-overlay','saves-overlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target.id === id) e.target.classList.remove('visible');
+  });
+});
+
+// ── Keyboard shortcut for help ────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    hidePalette();
+    ['help-overlay','history-overlay','saves-overlay'].forEach(id => {
+      document.getElementById(id).classList.remove('visible');
+    });
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(function init() {
+  setStatus('online');
+  updatePill();
+
+  if (!WORKER_URL) {
+    showConfigBanner();
+  } else {
+    appendNotice('info', `↑ &nbsp;session started &nbsp;·&nbsp; auto-saving to localStorage &nbsp;·&nbsp; /help for commands`);
+  }
+
+  inputEl.focus();
+})();
+</script>
+</body>
+</html>
